@@ -1,0 +1,5 @@
+<kmmd>
+    <control task="kswapd"/>
+    <control task="kcompactd"/>
+    <control cpus="0x0f"/>
+</kmmd>

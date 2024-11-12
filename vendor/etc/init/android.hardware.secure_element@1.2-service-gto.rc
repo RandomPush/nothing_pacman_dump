@@ -1,0 +1,13 @@
+##ifdef NT_EDIT
+#add to fix AERO-1217
+on property:ro.boot.hardware.sku=JPN
+    start gto_secure_element_hal_service_1_2
+##endif /* NT_EDIT */
+service gto_secure_element_hal_service_1_2 /vendor/bin/hw/android.hardware.secure_element@1.2-service-gto
+    class hal
+    user secure_element
+    group secure_element nfc
+##ifdef NT_EDIT
+#add for separate st21/st54 AERO-30
+    disabled
+##endif /* NT_EDIT */

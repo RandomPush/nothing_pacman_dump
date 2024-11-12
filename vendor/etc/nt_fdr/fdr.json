@@ -1,0 +1,109 @@
+{
+    "configs": [
+        {
+            "issue": "any",
+            "condition_and_actions": [
+                {
+                    "condition": {
+                        "network_type": 2,
+                        "endc_status":false
+                    },
+                    "recovery_action": {
+                        "endc": true
+                    },
+                    "monitor_time": 10
+                },
+                {
+                    "condition": {
+                        "network_type": 2,
+                        "endc_status":true
+                    },
+                    "recovery_action": {
+                        "endc": false
+                    },
+                    "monitor_time": 10
+                },
+                {
+                    "condition": {
+                        "network_type": 3
+                    },
+                    "recovery_action": {
+                        "de_priority_cell": "nr"
+                    },
+                    "monitor_time": 10
+                },
+                {
+                    "condition": {
+                        "network_type": 3,
+                        "signal": "-97,15"
+                    },
+                    "recovery_action": {
+                        "deprioritize_nr": "null"
+                    },
+                    "monitor_time": 10
+                },
+                {
+                    "condition": {
+                        "network_type": 3,
+                        "signal": "-97,15"
+                    },
+                    "recovery_action": {
+                        "n1mode": "false"
+                    },
+                    "monitor_time": 10
+                },
+                {
+                    "condition": {
+                        "network_type": 1
+                    },
+                    "recovery_action": {
+                        "de_priority_cell": "lte"
+                    },
+                    "monitor_time": 10
+                },
+                {
+                    "condition": {
+                        "network_type": 2
+                    },
+                    "recovery_action": {
+                        "de_priority_cell": "lte"
+                    },
+                    "monitor_time": 10
+                }
+            ]
+        },
+        {
+            "issue": "NWMONITOR",
+            "condition_and_actions": [
+                {
+                    "condition": {},
+                    "recovery_action": {
+                        "dsrm": 0
+                    },
+                    "monitor_time": 180
+                },
+                {
+                    "condition": {},
+                    "recovery_action": {
+                        "dsrm": 1
+                    },
+                    "monitor_time": 180
+                },
+                {
+                    "condition": {},
+                    "recovery_action": {
+                        "dsrm": 3
+                    },
+                    "monitor_time": 180
+                },
+                {
+                    "condition": {},
+                    "recovery_action": {
+                        "dsrm": 4
+                    },
+                    "monitor_time": 180
+                }
+            ]
+        }
+    ]
+}

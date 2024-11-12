@@ -1,0 +1,6 @@
+MaxRequestQueueDepth=2
+NumberOfThread=3
+LogInfoMask=0x31
+LogEnable=1
+LivePendingRequestTimeOut=30000
+EnableReuqestLIFO=1
