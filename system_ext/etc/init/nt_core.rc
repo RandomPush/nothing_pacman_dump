@@ -1,0 +1,127 @@
+on post-fs
+    start nt_key_monitor
+    setprop sys.first.rescue_reboot 1
+    chmod 0770 /mnt/product/nt_log
+    chown root system /mnt/product/nt_log
+    restorecon --recursive /mnt/product/nt_log
+    restorecon --recursive /mnt/product/nt_log/recovery_log
+    chown root system /mnt/product/nt_log/recovery_log
+    chmod 0770 /mnt/product/nt_log/recovery_log
+    exec_background  - root system  -- /system_ext/bin/nt_core_log boot
+    exec_background  - root system  -- /system_ext/bin/nt_tzdbg_recorder
+
+on property:sys.system_server.start_count=2
+    setprop sys.system_server.crash 1
+
+on property:sys.system_server.crash=1 && property:sys.system_server.start_count=*
+    chmod 0770 /mnt/product/nt_log
+    chown root system /mnt/product/nt_log
+    restorecon --recursive /mnt/product/nt_log
+    exec_background  - root system  -- /system_ext/bin/nt_core_log crash
+
+on property:sys.attempting_reboot=true && property:sys.first.rescue_reboot=1
+    setprop sys.first.rescue_reboot 0
+    chmod 0770 /mnt/product/nt_log
+    chown root system /mnt/product/nt_log
+    restorecon --recursive /mnt/product/nt_log
+    exec_background  - root system  -- /system_ext/bin/nt_core_log rescue
+
+on property:sys.attempting_factory_reset=true && property:sys.first.rescue_reboot=1
+    setprop sys.first.rescue_reboot 0
+    chmod 0770 /mnt/product/nt_log
+    chown root system /mnt/product/nt_log
+    restorecon --recursive /mnt/product/nt_log
+    exec_background  - root system  -- /system_ext/bin/nt_core_log rescue
+
+on property:sys.boot_completed=1 && property:vendor.nt.err_report=1
+    chmod 0770 /mnt/product/nt_log
+    chown root system /mnt/product/nt_log
+    restorecon --recursive /mnt/product/nt_log
+    exec_background  - root system  -- /system_ext/bin/nt_core_log hwerr
+
+on property:sys.init.reboot_rollbackstagedinstall=1
+    chmod 0770 /mnt/product/nt_log
+    chown root system /mnt/product/nt_log
+    restorecon --recursive /mnt/product/nt_log
+    exec_background  - root system  -- /system_ext/bin/nt_core_log crash
+
+on property:vendor.nt_dump.exist=1 && property:persist.sys.fuse=true && property:vendor.minidump.cp.status=1
+    setprop sys.nt_core_log.panic.status running
+    setprop vendor.nt_dump.exist 0
+    mkdir /data/logkit/nt.core.log_panic 0770 root system
+    restorecon --recursive /data/logkit/
+    exec_background  - root system  -- /system_ext/bin/nt_core_log panic "/data/logkit/nt.core.log_panic/"${vendor.nt_dump.last_panic_log}
+    setprop sys.nt_core_log.panic.status not_running
+
+service nt_key_monitor /system_ext/bin/nt_key_monitor
+    class main
+    user root
+    group root
+
+on property:ota.start=*
+    chmod 0770 /mnt/product/nt_log
+    chown root system /mnt/product/nt_log
+    restorecon --recursive /mnt/product/nt_log
+    exec_background  - root system  -- /system_ext/bin/nt_ota_notifier
+
+on property:vendor.display.enable_ic_hw_roundedcorner=*
+     setprop sys.display.enable_rc_support ${vendor.display.enable_ic_hw_roundedcorner}
+
+on property:persist.vendor.err_cnt.now=*
+     setprop sys.nt_core_log.hwerrtype ${persist.vendor.err_cnt.now}
+
+on property:dev.bootcomplete=1 && property:vendor.minidump.cp.status=1 && property:sys.nt_core_log.panic.status="not_running"
+    exec_background  - root system  -- /system_ext/bin/nt_id_recorder
+
+on property:dev.bootcomplete=1 && property:vendor.minidump.cp.status="not_valid"
+    exec_background  - root system  -- /system_ext/bin/nt_id_recorder
+
+# For Smart GC 2.0
+on property:sys.boot_completed=1
+    mkdir /data/fs/ 0770 root system encryption=None
+    restorecon /data/fs
+
+on property:persist.vold.enable_smartGC2=1 && property:sys.boot_completed=1
+    write /proc/nt_readahead/readahead_monitor_switch 1
+    setprop vold.defrag_period 0
+
+on property:persist.vold.enable_smartGC2=0 && property:sys.boot_completed=1
+    write /proc/nt_readahead/readahead_monitor_switch 0
+
+on property:vold.collect_fs_status=1 && property:persist.vold.enable_smartGC2=1
+    setprop vold.collect_fs_status 0
+    exec_background  - root system  -- /system_ext/bin/nt_file_defrag collect
+
+on property:vold.defrag_files=1 && property:persist.vold.enable_smartGC2=1
+    setprop vold.defrag_files 0
+    exec_background  - root system  -- /system_ext/bin/nt_file_defrag defrag
+
+on property:vold.collect_n_defrag=1 && property:persist.vold.enable_smartGC2=1
+    setprop vold.collect_n_defrag 0
+    exec_background  - root system  -- /system_ext/bin/nt_file_defrag all
+
+on property:vold.defragseg=* && property:persist.vold.enable_smartGC3=1
+    exec_background  - root system  -- /system_ext/bin/nt_smartGC3 ${vold.defragseg}
+
+# For MTK device copy last_kmsg
+on post-fs-data && property:Build.BRAND=MTK
+    copy /sys/fs/pstore/console-ramoops-0 /data/vendor/aee_exp/last_kmsg.txt
+    chown root system /data/vendor/aee_exp/last_kmsg.txt
+    chmod 0770 /data/vendor/aee_exp/last_kmsg.txt
+
+on property:sys.boot.reason.last=*
+    setprop sys.boot.reason.last_core ${sys.boot.reason.last}
+
+on property:persist.sys.boot.reason.history=*
+    setprop sys.boot.reason.history_core ${persist.sys.boot.reason.history}
+
+service nt_get_node_prop /system_ext/bin/nt_get_node_prop.sh
+    class main
+    user root
+    group root system
+    disabled
+    oneshot
+
+on property:sys.aging.suspend_cnt=true
+    start nt_get_node_prop
+

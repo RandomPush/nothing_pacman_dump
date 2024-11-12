@@ -1,0 +1,478 @@
+on post-fs-data
+    mkdir /data/config 0777 root system
+    copy /mnt/vendor/persist/FSN.txt /data/config/FSN.txt
+    chmod 0444 /data/config/FSN.txt
+    chown system system /data/config/FSN.txt
+    copy /mnt/vendor/persist/PSN.txt /data/config/PSN.txt
+    chmod 0444 /data/config/PSN.txt
+    chown system system /data/config/PSN.txt
+
+on property:persist.service.boot_logfs.enable=1
+    copy /dev/block/sde55 /data/logs/logfs
+    chmod 0444 /data/logs/logfs
+    chown system system /data/logs/logfs
+
+#add for A+G sensor calibration
+on property:sys.ssc_drva_test.accel=copy
+   copy /mnt/vendor/persist/sensors/registry/registry/icm4x6xx_0_platform.accel.fac_cal.bias data/config/icm4x6xx_0_platform.accel.fac_cal.bias
+   copy /mnt/vendor/persist/sensors/registry/registry/lsm6dso_0_platform.accel.fac_cal.bias data/config/lsm6dso_0_platform.accel.fac_cal.bias
+   chown system system data/config/icm4x6xx_0_platform.accel.fac_cal.bias
+   chmod 0666 /data/config/icm4x6xx_0_platform.accel.fac_cal.bias
+   chown system system data/config/lsm6dso_0_platform.accel.fac_cal.bias
+   chmod 0666 /data/config/lsm6dso_0_platform.accel.fac_cal.bias
+
+on property:sys.ssc_drva_test.gyro=copy
+   copy /mnt/vendor/persist/sensors/registry/registry/icm4x6xx_0_platform.gyro.fac_cal.bias data/config/icm4x6xx_0_platform.gyro.fac_cal.bias
+   copy /mnt/vendor/persist/sensors/registry/registry/lsm6dso_0_platform.gyro.fac_cal.bias data/config/lsm6dso_0_platform.gyro.fac_cal.bias
+   chown system system data/config/icm4x6xx_0_platform.gyro.fac_cal.bias
+   chmod 0666 /data/config/icm4x6xx_0_platform.gyro.fac_cal.bias
+   chown system system data/config/lsm6dso_0_platform.gyro.fac_cal.bias
+   chmod 0666 /data/config/lsm6dso_0_platform.gyro.fac_cal.bias
+
+
+on userspace-reboot-requested
+    setprop sys.logkit.bugreport ""
+    setprop sys.tombstones.copy 0
+    setprop sys.logkit.dumplog.enable 0
+    setprop sys.logkit.ssr.restart_level ""
+    setprop sys.logkit.debug_policy ""
+    setprop sys.logkit.debug_policy.ready 1
+    setprop sys.logkit.system_server.pid "-1"
+    setprop sys.logkit.sigquit.p ""
+    setprop sys.logkit.dynamic.log 0
+    setprop sys.logkit.sigquit.app.p ""
+
+on property:dev.bootcomplete=1
+    copy /sys/fs/pstore/console-ramoops-0 /data/config/console-ramoops-0-tmp
+    chmod 0444 /data/config/console-ramoops-0-tmp
+    start log_service
+
+on property:sys.tcpdump=1
+    # because when enforce = 0 , this folder will delete by logkit
+    mkdir /data/tcpdump/ 0770 root system encryption=None
+    start tcp_dump
+
+on property:sys.tombstones.copy=1
+    start copy_tombstones
+    setprop sys.tombstones.copy 0
+
+on property:sys.logkit.dumplog.enable=1
+    mkdir /data/logs/dumpsys 0770 system system
+    start dump_info
+
+on property:sys.logkit.dumplog.enable=0
+    stop dump_info
+
+on property:sys.logkit.ssr.restart_level=ALL_DISABLE
+    setprop persist.vendor.ssr.restart_level ALL_DISABLE
+
+on property:sys.logkit.ssr.restart_level=ALL_ENABLE
+    setprop persist.vendor.ssr.restart_level ALL_ENABLE
+
+on property:persist.vendor.ssr.restart_level=*
+    setprop sys.read.ssr.restart_level ${persist.vendor.ssr.restart_level}
+
+on property:sys.logkit.debug_policy=fulldump
+    setprop persist.vendor.debug_policy fulldump
+
+on property:sys.logkit.debug_policy=minidump
+    setprop persist.vendor.debug_policy minidump
+
+on property:sys.logkit.debug_policy.ready=0
+    setprop persist.vendor.debug_policy.ready 0
+
+on property:sys.logkit.sigquit.p=*
+    start logkit_sigquit
+
+on property:sys.logkit.sigquit.app.p=*
+    start logkit_sigquit_app
+
+# for use adb to set persist.service.uploadlog.enable
+on property:debug.logkit.uploadlog.enable=0
+    setprop persist.service.uploadlog.enable 0
+
+on property:debug.logkit.uploadlog.enable=1
+    setprop persist.service.uploadlog.enable 1
+
+# for set Qcril
+on property:sys.logkit.persist.vendor.radio.adb_log_on=0
+   setprop persist.vendor.radio.adb_log_on 0
+
+on property:sys.logkit.persist.vendor.radio.adb_log_on=1
+   setprop persist.vendor.radio.adb_log_on 1
+
+# for set force_key_warm_reset
+on property:sys.logkit.stability.force_key_warm_reset=0
+   setprop persist.vendor.stability.force_key_warm_reset 0
+
+on property:sys.logkit.stability.force_key_warm_reset=1
+   setprop persist.vendor.stability.force_key_warm_reset 1
+
+on property:persist.vendor.stability.force_key_warm_reset=*
+    setprop sys.read.stability.force_key_warm_reset ${persist.vendor.stability.force_key_warm_reset}
+
+# for copy nt_uefi and nt_kmsg in 22111
+on property:sys.logkit.taro.nt_uefi.copy=1
+    copy /dev/block/sde64 /data/logs/nt_kmsg
+    copy /dev/block/sde65 /data/logs/nt_uefi
+    chmod 0444 /data/logs/nt_kmsg
+    chmod 0444 /data/logs/nt_uefi
+    chown system system /data/logs/nt_kmsg
+    chown system system /data/logs/nt_uefi
+    setprop sys.logkit.taro.nt_uefi.copy 0
+
+# for copy nt_uefi and nt_kmsg in aero
+on property:sys.logkit.aero.nt_uefi.copy=1
+    copy /dev/block/sdc77 /data/logs/nt_kmsg
+    copy /dev/block/sdc78 /data/logs/nt_uefi
+    chmod 0444 /data/logs/nt_kmsg
+    chmod 0444 /data/logs/nt_uefi
+    chown system system /data/logs/nt_kmsg
+    chown system system /data/logs/nt_uefi
+    exec -- /system/bin/cp /proc/pl_lk /data/logs/pl_lk
+    exec -- /system/bin/chown -R system /data/logs/pl_lk
+    setprop sys.logkit.aero.nt_uefi.copy 0
+
+# for copy aee in aero
+on property:sys.logkit.aero.copyaeelog=1
+    exec -- /system/bin/cp -R /data/aee_exp /data/logs/aee_exp
+    exec -- /system/bin/chown -R system /data/logs/aee_exp
+    mkdir /data/logs/vendor 0770 system system
+    exec -- /system/bin/cp -R /data/vendor/aee_exp /data/logs/vendor/aee_exp
+    exec -- /system/bin/chown -R system /data/logs/vendor/aee_exp
+    setprop sys.logkit.aero.copyaeelog 0
+
+on property:ro.boot.aging_build=1
+    setprop persist.sys.debug.enabled 1
+    setprop persist.sys.debug.input 1
+    setprop persist.sys.debug.barrier 1
+
+# for set full dump nonlimit
+on property:sys.logkit.fulldump.nonlimit=0
+   setprop persist.vendor.fulldump.nonlimit 0
+
+on property:sys.logkit.fulldump.nonlimit=1
+   setprop persist.vendor.fulldump.nonlimit 1
+
+on property:persist.vendor.fulldump.nonlimit=*
+    setprop sys.read.fulldump.nonlimit ${persist.vendor.fulldump.nonlimit}
+
+# for set location_debug
+on property:sys.logkit.location.debug_enabled=false
+   setprop persist.vendor.location.debug_enabled false
+
+on property:sys.logkit.location.debug_enabled=true
+   setprop persist.vendor.location.debug_enabled true
+
+on property:persist.vendor.location.debug_enabled=*
+    setprop sys.read.location.debug_enabled ${persist.vendor.location.debug_enabled}
+
+# [TFT-1931] Dump soc audio log in bluetooth log
+on property:sys.logkit.persist.vendor.service.bdroid.soclog=15
+   setprop persist.vendor.service.bdroid.soclog 15
+
+on property:sys.logkit.persist.vendor.service.bdroid.soclog=7
+   setprop persist.vendor.service.bdroid.soclog 7
+
+on property:sys.logkit.persist.vendor.service.bdroid.soclog=0
+   setprop persist.vendor.service.bdroid.soclog 0
+
+on property:sys.logkit.persist.vendor.service.bdroid.soclog=9
+   setprop persist.vendor.service.bdroid.soclog 9
+
+on property:sys.logkit.persist.vendor.service.bdroid.soclog=false
+   setprop persist.vendor.service.bdroid.soclog false
+
+# [TFT-1940] QXDM log file size and num setting
+on property:persist.sys.qcom.mdlog.size=*
+    setprop persist.vendor.qcom.mdlog.size ${persist.sys.qcom.mdlog.size}
+on property:persist.sys.qcom.mdlog.num=*
+    setprop persist.vendor.qcom.mdlog.num ${persist.sys.qcom.mdlog.num}
+
+service log_service /system_ext/bin/nt_logkit
+    class core
+    file /proc/kmsg r
+    user system
+    group root system
+    oneshot
+    disabled
+
+service tcp_dump /system_ext/bin/nt_logkit tcpdump
+    class main
+    user root
+    group root system
+    oneshot
+    seclabel u:r:tcpdump:s0
+    disabled
+
+service copy_tombstones /system_ext/bin/nt_logkit copy_folder data/tombstones data/logs
+    class core
+    user system
+    group system
+    oneshot
+    disabled
+
+service dump_info /system_ext/bin/nt_logkit dump_info
+    class core
+    user system
+    group root system
+    seclabel u:r:dumpinfo:s0
+    oneshot
+    disabled
+
+service touchpanel /system_ext/bin/nt_logkit touchpanel
+    class main
+    user root
+    group root system
+    oneshot
+    disabled
+
+service logkit_sigquit /system_ext/bin/nt_logkit cmd kill -3 ${sys.logkit.sigquit.p}
+    class core
+    user root
+    group root system
+    oneshot
+    disabled
+
+service logkit_sigquit_app /system_ext/bin/nt_logkit cmd kill -3 ${sys.logkit.sigquit.app.p}
+    class core
+    user root
+    group root system
+    oneshot
+    disabled
+
+service audio_dump /system_ext/bin/nt_logkit audio_dump
+    class core
+    user root
+    group root system
+    oneshot
+    disabled
+
+service audio_cmd /system_ext/bin/nt_logkit audio_cmd ${sys.logkit.mkt.audio.cmd}
+    class core
+    user root
+    group root system
+    oneshot
+    disabled
+
+# [TFT-1784]Set Audio Log on Aero
+on property:sys.logkit.vendor.a2dp.streamout.pcm=0
+   setprop vendor.a2dp.streamout.pcm 0
+
+on property:sys.logkit.vendor.a2dp.streamout.pcm=1
+   setprop vendor.a2dp.streamout.pcm 1
+
+on property:sys.logkit.vendor.aaudio.pcm=0
+   setprop vendor.aaudio.pcm 0
+
+on property:sys.logkit.vendor.aaudio.pcm=1
+   setprop vendor.aaudio.pcm 1
+
+on property:sys.logkit.vendor.af.effect.pcm=0
+   setprop vendor.af.effect.pcm 0
+
+on property:sys.logkit.vendor.af.effect.pcm=1
+   setprop vendor.af.effect.pcm 1
+
+on property:sys.logkit.vendor.af.mixer.drc.pcm=0
+   setprop vendor.af.mixer.drc.pcm 0
+
+on property:sys.logkit.vendor.af.mixer.drc.pcm=1
+   setprop vendor.af.mixer.drc.pcm 1
+
+on property:sys.logkit.vendor.af.mixer.end.pcm=0
+   setprop vendor.af.mixer.end.pcm 0
+
+on property:sys.logkit.vendor.af.mixer.end.pcm=1
+   setprop vendor.af.mixer.end.pcm 1
+
+on property:sys.logkit.vendor.af.mixer.pcm=0
+   setprop vendor.af.mixer.pcm 0
+
+on property:sys.logkit.vendor.af.mixer.pcm=1
+   setprop vendor.af.mixer.pcm 1
+
+on property:sys.logkit.vendor.af.offload.write.raw=0
+   setprop vendor.af.offload.write.raw 0
+
+on property:sys.logkit.vendor.af.offload.write.raw=1
+   setprop vendor.af.offload.write.raw 1
+
+on property:sys.logkit.vendor.af.record.dump.pcm=0
+   setprop vendor.af.record.dump.pcm 0
+
+on property:sys.logkit.vendor.af.record.dump.pcm=1
+   setprop vendor.af.record.dump.pcm 1
+
+on property:sys.logkit.vendor.af.resampler.pcm=0
+   setprop vendor.af.resampler.pcm 0
+
+on property:sys.logkit.vendor.af.resampler.pcm=1
+   setprop vendor.af.resampler.pcm 1
+
+on property:sys.logkit.vendor.af.track.pcm=0
+   setprop vendor.af.track.pcm 0
+
+on property:sys.logkit.vendor.af.track.pcm=1
+   setprop vendor.af.track.pcm 1
+
+on property:sys.logkit.vendor.streamin.dsp.dump=0
+   setprop vendor.streamin.dsp.dump 0
+
+on property:sys.logkit.vendor.streamin.dsp.dump=1
+   setprop vendor.streamin.dsp.dump 1
+
+on property:sys.logkit.vendor.streamin.pcm.dump=0
+   setprop vendor.streamin.pcm.dump 0
+
+on property:sys.logkit.vendor.streamin.pcm.dump=1
+   setprop vendor.streamin.pcm.dump 1
+
+on property:sys.logkit.vendor.streamout.dsp.dump=0
+   setprop vendor.streamout.dsp.dump 0
+
+on property:sys.logkit.vendor.streamout.dsp.dump=1
+   setprop vendor.streamout.dsp.dump 1
+
+on property:sys.logkit.vendor.streamout.pcm.dump=0
+   setprop vendor.streamout.pcm.dump 0
+
+on property:sys.logkit.vendor.streamout.pcm.dump=1
+   setprop vendor.streamout.pcm.dump 1
+
+on property:sys.logkit.persist.vendor.audiohal.aurisys.pcm_dump_on=0
+   setprop persist.vendor.audiohal.aurisys.pcm_dump_on 0
+
+on property:sys.logkit.persist.vendor.audiohal.aurisys.pcm_dump_on=1
+   setprop persist.vendor.audiohal.aurisys.pcm_dump_on 1
+
+# [AERO-1776]Set Audio Log[output、input、Audiomixer] on Aero 2023.09.27
+on property:sys.logkit.vendor.af.writer.pcm=0
+   setprop vendor.af.writer.pcm 0
+
+on property:sys.logkit.vendor.af.writer.pcm=1
+   setprop vendor.af.writer.pcm 1
+
+on property:sys.logkit.vendor.af.offload.raw=0
+   setprop vendor.af.offload.raw 0
+
+on property:sys.logkit.vendor.af.offload.raw=1
+   setprop vendor.af.offload.raw 1
+
+on property:sys.logkit.vendor.af.record.pcm=0
+   setprop vendor.af.record.pcm 0
+
+on property:sys.logkit.vendor.af.record.pcm=1
+   setprop vendor.af.record.pcm 1
+
+on property:sys.logkit.vendor.af.drc.pcm=0
+   setprop vendor.af.drc.pcm 0
+
+on property:sys.logkit.vendor.af.drc.pcm=1
+   setprop vendor.af.drc.pcm 1
+
+on property:sys.logkit.vendor.af.aaudio.pcm=0
+   setprop vendor.af.aaudio.pcm 0
+
+on property:sys.logkit.vendor.af.aaudio.pcm=1
+   setprop vendor.af.aaudio.pcm 1
+
+# [AERO-1775]Set [VM + EPL] on Aero 2023.09.27
+on property:sys.logkit.persist.vendor.audiohal.vm_cfg=0
+   setprop persist.vendor.audiohal.vm_cfg 0
+
+on property:sys.logkit.persist.vendor.audiohal.vm_cfg=1
+   setprop persist.vendor.audiohal.vm_cfg 1
+
+# for restart audioserver
+on property:sys.logkit.aero.pkill.audioserver=false
+   setprop vendor.af.audioserver.restart 0
+   setprop vendor.af.audioserver.restart 1
+   setprop sys.logkit.aero.pkill.audioserver true
+
+
+# for read aero modem config
+on property:vendor.mdlogger.Running=*
+    setprop sys.logkit.vendor.mdlogger.Running ${vendor.mdlogger.Running}
+
+on property:vendor.mdl.run.folder=*
+    setprop sys.logkit.vendor.mdl.run.folder ${vendor.mdl.run.folder}
+
+# for read aero connsys config
+on property:vendor.connsysfw.run.path=*
+    setprop sys.logkit.vendor.connsysfw.run.path ${vendor.connsysfw.run.path}
+
+# for read aero mobile log path
+on property:vendor.MB.realpath=*
+    setprop sys.logkit.vendor.MB.realpath ${vendor.MB.realpath}
+
+# for touch panel
+on property:sys.logkit.touchpanel.enable=1
+    mkdir /data/logs/touch_panel/ 0775 system system
+
+on property:sys.logkit.touchpanel.fetch=1
+    start touchpanel
+
+on property:sys.boot_completed=1
+    restorecon /sys/devices/platform/goodix_ts.0/enable_replay
+    restorecon /sys/devices/platform/goodix_ts.0/replay_data
+
+# for write mrdump type
+on property:sys.logkit.persist.vendor.mrdump.type=*
+    setprop persist.vendor.mrdump.type ${sys.logkit.persist.vendor.mrdump.type}
+
+# for read  mrdump type
+on property:persist.vendor.mrdump.type=*
+    setprop sys.read.persist.vendor.mrdump.type ${persist.vendor.mrdump.type}
+
+# for set bluetooth host log level
+on property:sys.logkit.persist.vendor.bluetooth.hostloglevel=*
+    setprop persist.vendor.bluetooth.hostloglevel ${sys.logkit.persist.vendor.bluetooth.hostloglevel}
+
+# TFT-2130 Default enable log capture in CBT and Factory
+on property:sys.boot_completed=1 && property:sys.device.type=CBT
+    setprop persist.service.crashlog.enable 1
+    setprop persist.service.start.capture 1
+
+on property:sys.boot_completed=1 && property:ro.build.version.type=factory
+    setprop persist.service.crashlog.enable 1
+    setprop persist.service.start.capture 1
+
+on property:persist.sys.enable_ffdump=true && property:sys.device.type=CBT
+    setprop persist.vendor.debug_policy fulldump
+    setprop persist.vendor.mrdump.type usb
+    setprop persist.vendor.debug_policy.ready 0
+
+on property:persist.sys.enable_ffdump=false && property:sys.device.type=CBT
+    setprop persist.vendor.debug_policy minidump
+    setprop persist.vendor.debug_policy.ready 0
+
+# TFT-2516 Collect wifi dump in 23111
+on property:sys.logkit.connsys.coredump.mode=0
+   setprop persist.vendor.connsys.coredump.mode 0
+
+on property:sys.logkit.connsys.coredump.mode=2
+   setprop persist.vendor.connsys.coredump.mode 2
+
+on property:sys.ptm.systrace.cmd=*
+   exec u:r:su:s0 - root shell -- /system/bin/sh /system_ext/bin/system_perfetto ${sys.ptm.systrace.cmd}
+
+# TFT-2563 Collect fingerprint dump in 23111
+on property:sys.logkit.gf.debug.dump_data=0
+   setprop persist.vendor.goodix.dump_data 0
+
+on property:sys.logkit.gf.debug.dump_data=1
+   setprop persist.vendor.goodix.dump_data 1
+
+on property:sys.logkit.nt.fp.dump_data=0
+   setprop persist.vendor.noth.dump_data 0
+
+on property:sys.logkit.nt.fp.dump_data=1
+   setprop persist.vendor.noth.dump_data 1
+
+# TFT-3033, For MTK platform switch aee mode
+on property:sys.logkit.aee.mode=3
+   exec -- /system_ext/bin/aee_v2 -m 3
+
+on property:sys.logkit.aee.mode=4
+   exec -- /system_ext/bin/aee_v2 -m 4

@@ -1,0 +1,53 @@
+#/bin/bash
+
+if [ ! $1 ]; then
+    exit -1
+fi
+
+output_path="data/misc/perfetto-traces"
+copy_path="data/local/nt_traces"
+
+if [ "stop" = $1 ]; then
+    log "[system_perfetto]: end capturing trace"
+    perfetto --stop --attach sys-trace
+
+    reason=$(getprop sys.ptm.systrace.reason)
+    if [ -z "$reason" ]; then
+        reason="empty"
+    fi
+    board=$(getprop ro.product.board)
+    id=$(getprop ro.build.id)
+
+    maxCount=$(getprop persist.sys.ptm.max.trace.count 5)
+    # delete perfetto log if reach to limit
+    if [ -d $copy_path ]; then
+        traceFiles=`ls -rt $copy_path/ntsys-trace-*`
+        if [ $? -eq 0 ]; then
+            traceArray=(${traceFiles// / })
+            if [ ${#traceArray[@]} -ge $maxCount ]; then
+                # delete older files
+                delCount=`expr ${#traceArray[@]} / $maxCount`
+                for i in `seq 0 $(($delCount - 1))`
+                    do
+                        log "[system_perfetto]: delete ${traceArray[i]}"
+                        rm ${traceArray[i]}
+                    done
+            fi
+        fi
+    fi
+
+    setprop sys.ptm.systrace.reason ""
+    setprop sys.ptm.systrace.cmd ""
+    new_file=ntsys-trace-$reason-$board-$id-$(date "+%Y-%m-%d-%H-%M-%S").perfetto-trace
+    mv $output_path/ntsys-trace-in-progress.trace $copy_path/$new_file
+    chcon u:object_r:trace_data_file:s0 $copy_path/$new_file
+    chmod 666 $copy_path/$new_file
+    exit 0
+fi
+
+
+if [ "start" = $1 ]; then
+    log "[system_perfetto]: start capturing trace"
+    perfetto --detach=sys-trace --txt --config /system_ext/etc/system_perfetto.cfg --out $output_path/ntsys-trace-in-progress.trace
+    exit 0
+fi

@@ -1,0 +1,21 @@
+# add by spencer for cit colorID
+on property:sys.cit.color=*
+    chmod 0444 /data/config/color
+    copy /data/config/color /mnt/vendor/persist/color
+    chown 0644 /mnt/vendor/persist/color
+    chown system system /mnt/vendor/persist/color
+    chmod 0666 /data/config/color
+
+# add by spencer for [TFT-2273] read Touch panel version && firmware
+on property:sys.boot_completed=1
+    restorecon /sys/devices/platform/goodix_ts.0/driver_info
+    restorecon /sys/devices/platform/goodix_ts.0/fw_bin_info
+# add by spencer for [TFT-2273] read panel_id
+    restorecon /sys/panel_feature/panel_id1
+    restorecon /sys/panel_feature/panel_id2
+    restorecon /sys/panel_feature/panel_id3
+
+# add by spencer for [TFT-2987] cit set /proc/haptic/f0 to /mnt/vendor/persist/haptic/cali_data 
+on property:sys.cit.haptic.cali_data=*
+    chmod 0444 /data/config/cali_data
+    copy /data/config/cali_data /mnt/vendor/persist/haptic/cali_data

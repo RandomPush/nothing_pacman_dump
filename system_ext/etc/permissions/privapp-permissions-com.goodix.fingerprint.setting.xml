@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<permissions>
+    <privapp-permissions package="com.goodix.fingerprint.setting">
+        <!-- System defined permissions -->
+        <permission name="android.permission.MANAGE_FINGERPRINT"/>
+        <permission name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS"/>
+    </privapp-permissions>
+</permissions>
